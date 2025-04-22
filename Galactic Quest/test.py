@@ -15,11 +15,9 @@ font = pygame.font.SysFont("Arial", 30)
 clock = pygame.time.Clock()
 
 def spawn_power_up():
-    # Only spawn power-up on the long platform
     x = random.randint(long_platform.left + 10, long_platform.right - 30)
-    y = long_platform.top - 20  # Make sure it's just above the platform
-    power_up_rect = pygame.Rect(x, y, 20, 20)
-    return power_up_rect
+    y = long_platform.top - 20
+    return pygame.Rect(x, y, 20, 20)
 
 def reset_game():
     return {
@@ -38,7 +36,7 @@ def reset_game():
         ],
         "power_up": spawn_power_up(),
         "game_over": False,
-        "player_shoot_speed": 500,  # Time interval in milliseconds
+        "player_shoot_speed": 500,
         "player_last_damage_time": 0,
     }
 
@@ -106,9 +104,8 @@ enemy_gravity = 0.5
 
 running = True
 last_shot_player = 0
-
 knockback_strength = 17
-damage_cooldown = 1000  # 1 second in milliseconds
+damage_cooldown = 1000
 
 while running:
     clock.tick(FPS)
@@ -125,38 +122,24 @@ while running:
             state["player_x"] -= player_vel
         if keys[pygame.K_d]:
             state["player_x"] += player_vel
+        if keys[pygame.K_w] and state["player_vel_y"] == 0:
+            state["player_vel_y"] = player_jump
 
-        # Jumping with W key
-        if keys[pygame.K_w]:
-            # Only allow jump if on ground
-            if state["player_vel_y"] == 0:  # Ensure player is on the ground before jumping
-                state["player_vel_y"] = player_jump  # Apply jump velocity
-
-    # Apply gravity to the player
-    state["player_vel_y"] += gravity  # Gravity pulls the player down
-
-    # Update player's vertical position
+    state["player_vel_y"] += gravity
     state["player_y"] += state["player_vel_y"]
 
     player_rect = pygame.Rect(state["player_x"], state["player_y"], player_w, player_h)
 
-    # Handle collision with platforms
     on_ground = False
     for p in platforms + [long_platform]:
         if player_rect.colliderect(p) and state["player_vel_y"] > 0:
-            state["player_y"] = p.top - player_h  # Player lands on top of platform
-            state["player_vel_y"] = 0  # Reset vertical velocity to zero when landing
+            state["player_y"] = p.top - player_h
+            state["player_vel_y"] = 0
             on_ground = True
 
-    # Prevent the player from falling below the ground
-    if player_rect.colliderect(long_platform) and state["player_vel_y"] > 0:
-        state["player_y"] = long_platform.top - player_h  # Snap to the platform top
-        state["player_vel_y"] = 0  # Stop falling
-
-    # Optional: If the player is still in the air and has a negative velocity (jumping/falling)
     if state["player_y"] > HEIGHT - player_h:
-        state["player_y"] = HEIGHT - player_h  # Stop at the bottom of the screen
-        state["player_vel_y"] = 0  # Reset velocity if hitting the floor
+        state["player_y"] = HEIGHT - player_h
+        state["player_vel_y"] = 0
 
     target_x = state["player_x"] + player_w // 2 - WIDTH // 2
     target_y = state["player_y"] + player_h // 2 - HEIGHT // 2
@@ -177,7 +160,7 @@ while running:
         angle = math.atan2(my - by, mx - bx)
         vx = bullet_speed * math.cos(angle)
         vy = bullet_speed * math.sin(angle)
-        state["bullets"].append([bx, by, vx, vy])
+        state["bullets"].append([bx, by, vx, vy, "player"])
         last_shot_player = current_time
 
     for b in state["bullets"][:]:
@@ -186,31 +169,36 @@ while running:
         if b[0] < 0 or b[0] > long_platform.width or b[1] < 0 or b[1] > HEIGHT:
             state["bullets"].remove(b)
 
-    # Bullet Collision with Enemies
+# Bullet collision (player hit by enemy)
     for b in state["bullets"][:]:
-        if isinstance(b[3], dict) and b[3].get("source") == "enemy":
-            if player_rect.colliderect(pygame.Rect(b[0], b[1], 5, 5)):
-                state["player_health"] -= 2
-                state["bullets"].remove(b)
-                if state["player_health"] <= 0:
+        if b[4] == "enemy":  # Check if the bullet is from an enemy
+            bullet_rect = pygame.Rect(b[0], b[1], 5, 5)  # Create a rectangle for the bullet
+            if player_rect.colliderect(bullet_rect):  # Check if the player collides with the bullet
+                state["player_health"] -= 2  # Player takes damage
+                state["bullets"].remove(b)  # Remove the bullet
+                if state["player_health"] <= 0:  # If health drops to 0, game over
                     state["game_over"] = True
-                break
-
-    # Bullet collision with enemies and health deduction
+    # Bullet collision (enemy hit by player)
     for b in state["bullets"][:]:
-        for e in state["enemies"]:
-            if b[0] > e["rect"].left and b[0] < e["rect"].right and b[1] > e["rect"].top and b[1] < e["rect"].bottom:
-                e["health"] -= 1
-                state["bullets"].remove(b)
-                if e["health"] <= 0:
-                    state["enemies"].remove(e)
-                    state["score"] += 1
-                break
-
+        if b[4] == "player":
+            for e in state["enemies"]:
+                if pygame.Rect(e["rect"]).collidepoint(b[0], b[1]):
+                    e["health"] -= 1
+                    state["bullets"].remove(b)
+                    if e["health"] <= 0:
+                        state["enemies"].remove(e)
+                        state["score"] += 1
+                    break
     for e in state["enemies"]:
         if e["shooting"]:
             current_time = pygame.time.get_ticks()
-            if current_time - e["last_shot"] > 1000:
+
+        # Check if the enemy is onscreen (within the camera's view)
+        if (e["rect"].x + e["rect"].width > cam_x and e["rect"].x < cam_x + WIDTH and
+         e["rect"].y + e["rect"].height > cam_y and e["rect"].y < cam_y + HEIGHT):
+            
+            # Check shooting cooldown
+            if current_time - e["last_shot"] > 2500:  # Shoots every 2.5 seconds
                 ex, ey = e["rect"].center
                 angle = math.atan2(state["player_y"] - ey, state["player_x"] - ex)
                 vx = bullet_speed * math.cos(angle)
@@ -223,12 +211,10 @@ while running:
             if state["player_health"] > 0 and (pygame.time.get_ticks() - state["player_last_damage_time"] > damage_cooldown):
                 state["player_health"] -= 2
                 state["player_last_damage_time"] = pygame.time.get_ticks()
-
                 if state["player_x"] < e["rect"].x:
                     state["player_x"] -= knockback_strength
                 else:
                     state["player_x"] += knockback_strength
-
             if state["player_health"] <= 0:
                 state["game_over"] = True
 
