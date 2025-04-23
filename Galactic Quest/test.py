@@ -197,15 +197,13 @@ while running:
         if (e["rect"].x + e["rect"].width > cam_x and e["rect"].x < cam_x + WIDTH and
          e["rect"].y + e["rect"].height > cam_y and e["rect"].y < cam_y + HEIGHT):
             
-            # Check shooting cooldown
             if current_time - e["last_shot"] > 2500:  # Shoots every 2.5 seconds
                 ex, ey = e["rect"].center
                 angle = math.atan2(state["player_y"] - ey, state["player_x"] - ex)
                 vx = bullet_speed * math.cos(angle)
                 vy = bullet_speed * math.sin(angle)
-                state["bullets"].append([ex, ey, vx, vy, {"source": "enemy"}])
+                state["bullets"].append([ex, ey, vx, vy, "enemy"])  # ✅ Now it matches collision logic
                 e["last_shot"] = current_time
-
     for e in state["enemies"]:
         if e["rect"].colliderect(player_rect):
             if state["player_health"] > 0 and (pygame.time.get_ticks() - state["player_last_damage_time"] > damage_cooldown):
@@ -231,10 +229,10 @@ while running:
     screen.fill(DARK_BLUE)
     for p in platforms + [long_platform]:
         pygame.draw.rect(screen, BLUE, p.move(-cam_x, -cam_y))
-    pygame.draw.rect(screen, RED, player_rect.move(-cam_x, -cam_y))
+    pygame.draw.rect(screen, GREEN, player_rect.move(-cam_x, -cam_y))
 
     for e in state["enemies"]:
-        pygame.draw.rect(screen, GREEN, e["rect"].move(-cam_x, -cam_y))
+        pygame.draw.rect(screen, RED, e["rect"].move(-cam_x, -cam_y))
 
     for b in state["bullets"]:
         pygame.draw.circle(screen, WHITE, (int(b[0] - cam_x), int(b[1] - cam_y)), 5)
