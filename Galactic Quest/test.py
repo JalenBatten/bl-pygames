@@ -169,16 +169,15 @@ while running:
         if b[0] < 0 or b[0] > long_platform.width or b[1] < 0 or b[1] > HEIGHT:
             state["bullets"].remove(b)
 
-# Bullet collision (player hit by enemy)
     for b in state["bullets"][:]:
-        if b[4] == "enemy":  # Check if the bullet is from an enemy
-            bullet_rect = pygame.Rect(b[0], b[1], 5, 5)  # Create a rectangle for the bullet
-            if player_rect.colliderect(bullet_rect):  # Check if the player collides with the bullet
-                state["player_health"] -= 2  # Player takes damage
-                state["bullets"].remove(b)  # Remove the bullet
-                if state["player_health"] <= 0:  # If health drops to 0, game over
+        if b[4] == "enemy":
+            bullet_rect = pygame.Rect(b[0], b[1], 5, 5)
+            if player_rect.colliderect(bullet_rect):
+                state["player_health"] -= 2
+                state["bullets"].remove(b)
+                if state["player_health"] <= 0:
                     state["game_over"] = True
-    # Bullet collision (enemy hit by player)
+
     for b in state["bullets"][:]:
         if b[4] == "player":
             for e in state["enemies"]:
@@ -189,40 +188,52 @@ while running:
                         state["enemies"].remove(e)
                         state["score"] += 1
                     break
+
     for e in state["enemies"]:
         if e["shooting"]:
             current_time = pygame.time.get_ticks()
-
-        # Check if the enemy is onscreen (within the camera's view)
         if (e["rect"].x + e["rect"].width > cam_x and e["rect"].x < cam_x + WIDTH and
-         e["rect"].y + e["rect"].height > cam_y and e["rect"].y < cam_y + HEIGHT):
-            
-            if current_time - e["last_shot"] > 2500:  # Shoots every 2.5 seconds
+            e["rect"].y + e["rect"].height > cam_y and e["rect"].y < cam_y + HEIGHT):
+            if current_time - e["last_shot"] > 2500:
                 ex, ey = e["rect"].center
                 angle = math.atan2(state["player_y"] - ey, state["player_x"] - ex)
                 vx = bullet_speed * math.cos(angle)
                 vy = bullet_speed * math.sin(angle)
-                state["bullets"].append([ex, ey, vx, vy, "enemy"])  # ✅ Now it matches collision logic
+                state["bullets"].append([ex, ey, vx, vy, "enemy"])
                 e["last_shot"] = current_time
-    for e in state["enemies"]:
-        if e["rect"].colliderect(player_rect):
-            if state["player_health"] > 0 and (pygame.time.get_ticks() - state["player_last_damage_time"] > damage_cooldown):
-                state["player_health"] -= 2
-                state["player_last_damage_time"] = pygame.time.get_ticks()
-                if state["player_x"] < e["rect"].x:
-                    state["player_x"] -= knockback_strength
-                else:
-                    state["player_x"] += knockback_strength
-            if state["player_health"] <= 0:
-                state["game_over"] = True
 
+    # Updated Enemy Movement Logic
     for e in state["enemies"]:
-        e["rect"].y += enemy_gravity
+        e["rect"].y += enemy_gravity  # Apply gravity to the enemy
+        
+        # Check if the enemy is on any platform
+        on_platform = False
         for p in platforms + [long_platform]:
             if e["rect"].colliderect(p):
-                e["rect"].bottom = p.top
+                e["rect"].bottom = p.top  # Make sure enemy stays on top of the platform
+                on_platform = True
                 break
+
+        # If the enemy is not on a platform, check if it's about to fall off
+        if on_platform:
+            future_rect = e["rect"].copy()
+            future_rect.x += enemy_vel
+            future_rect.y += 1  # Move down to check if it will fall
+
+            supported = False
+            for p in platforms + [long_platform]:
+                if future_rect.colliderect(p):
+                    supported = True
+                    break
+
+            # Reverse direction if there's no platform to land on
+            if not supported:
+                enemy_vel *= -1
+
+        # Move the enemy horizontally
         e["rect"].x += enemy_vel
+
+        # Prevent enemies from moving off the edges of the screen
         if e["rect"].left < 0 or e["rect"].right > long_platform.width:
             enemy_vel *= -1
 
