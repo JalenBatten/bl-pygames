@@ -4,12 +4,34 @@ import sys
 import random
 
 pygame.init()
+
+
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Platformer - Game Over Menu")
 WHITE, BLUE, RED = (255, 255, 255), (0, 0, 255), (255, 0, 0)
 DARK_BLUE, GREEN, BLACK = (30, 30, 60), (0, 255, 0), (0, 0, 0)
 FPS = 60
+
+# Load Cover Image
+cover_image = pygame.image.load('gameCover.jpg').convert()
+cover_image = pygame.transform.scale(cover_image, (800, 600))  # Make sure it fits the screen
+
+def show_cover_screen():
+    print("cover screen is loading")
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:  # Press any key to start
+                return
+        
+        screen.blit(cover_image, (0, 0))
+        pygame.display.update()
+
+show_cover_screen()
+
 font = pygame.font.SysFont("Arial", 30)
 
 clock = pygame.time.Clock()
