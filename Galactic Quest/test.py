@@ -5,7 +5,6 @@ import random
 
 pygame.init()
 
-
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Platformer - Game Over Menu")
@@ -13,9 +12,8 @@ WHITE, BLUE, RED = (255, 255, 255), (0, 0, 255), (255, 0, 0)
 DARK_BLUE, GREEN, BLACK = (30, 30, 60), (0, 255, 0), (0, 0, 0)
 FPS = 60
 
-# Load Cover Image
 cover_image = pygame.image.load('gameCover.jpg').convert()
-cover_image = pygame.transform.scale(cover_image, (800, 600))  # Make sure it fits the screen
+cover_image = pygame.transform.scale(cover_image, (800, 600))
 
 def show_cover_screen():
     print("cover screen is loading")
@@ -24,43 +22,15 @@ def show_cover_screen():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.KEYDOWN:  # Press any key to start
+            if event.type == pygame.KEYDOWN:
                 return
-        
         screen.blit(cover_image, (0, 0))
         pygame.display.update()
 
 show_cover_screen()
 
 font = pygame.font.SysFont("Arial", 30)
-
 clock = pygame.time.Clock()
-
-def spawn_power_up():
-    x = random.randint(long_platform.left + 10, long_platform.right - 30)
-    y = long_platform.top - 20
-    return pygame.Rect(x, y, 20, 20)
-
-def reset_game():
-    return {
-        "player_x": WIDTH // 2,
-        "player_y": HEIGHT - 150,
-        "player_vel_y": 0,
-        "player_health": 10,
-        "bullets": [],
-        "score": 0,
-        "enemies": [
-            {"rect": pygame.Rect(100, 390, 40, 40), "health": 3, "shooting": False, "last_shot": 0},
-            {"rect": pygame.Rect(1500, 240, 40, 40), "health": 2, "shooting": True, "last_shot": 0},
-            {"rect": pygame.Rect(2500, 310, 40, 40), "health": 1, "shooting": False, "last_shot": 0},
-            {"rect": pygame.Rect(3500, 150, 40, 40), "health": 3, "shooting": True, "last_shot": 0},
-            {"rect": pygame.Rect(4500, HEIGHT - 100, 40, 40), "health": 2, "shooting": False, "last_shot": 0},
-        ],
-        "power_up": spawn_power_up(),
-        "game_over": False,
-        "player_shoot_speed": 500,
-        "player_last_damage_time": 0,
-    }
 
 platform_w, platform_h = 100, 10
 long_platform = pygame.Rect(0, HEIGHT - 50, 5000, platform_h)
@@ -78,12 +48,48 @@ platforms = [
     pygame.Rect(4000, 200, platform_w, platform_h)
 ]
 
+boss_arena_x = 6000
+boss_arena_y = HEIGHT - 150
+boss_arena = pygame.Rect(boss_arena_x, HEIGHT - 50, 1000, 10)
+
+
+def spawn_power_up():
+    x = random.randint(long_platform.left + 10, long_platform.right - 30)
+    y = long_platform.top - 20
+    kind = random.choice(["health", "speed"])
+    return {"rect": pygame.Rect(x, y, 20, 20), "type": kind}
+
+def reset_game():
+    return {
+        "player_x": WIDTH // 2,
+        "player_y": HEIGHT - 150,
+        "player_vel_y": 0,
+        "player_health": 10,
+        "bullets": [],
+        "score": 0,
+        "enemies": [
+            {"rect": pygame.Rect(100, 390, 40, 40), "health": 3, "shooting": False, "last_shot": 0},
+            {"rect": pygame.Rect(1500, 240, 40, 40), "health": 2, "shooting": True, "last_shot": 0},
+            {"rect": pygame.Rect(2500, 310, 40, 40), "health": 1, "shooting": False, "last_shot": 0},
+            {"rect": pygame.Rect(3500, 150, 40, 40), "health": 3, "shooting": True, "last_shot": 0},
+            {"rect": pygame.Rect(4500, HEIGHT - 100, 40, 40), "health": 2, "shooting": False, "last_shot": 0},
+        ],
+        "power_ups": [spawn_power_up(), spawn_power_up()],
+        "game_over": False,
+        "player_shoot_speed": 500,
+        "player_last_damage_time": 0,
+        "in_boss_arena": False,
+        "boss_arena_entered": False
+    }
+
+
 def draw_button(text, x, y, w, h, hover, screen):
     color = (200, 50, 50) if hover else (150, 0, 0)
     pygame.draw.rect(screen, color, (x, y, w, h))
     pygame.draw.rect(screen, WHITE, (x, y, w, h), 2)
     label = font.render(text, True, WHITE)
     screen.blit(label, (x + w//2 - label.get_width()//2, y + h//2 - label.get_height()//2))
+
 
 def game_over_screen():
     while True:
@@ -112,6 +118,7 @@ def game_over_screen():
         pygame.display.flip()
         clock.tick(60)
 
+
 state = reset_game()
 
 player_w, player_h = 50, 50
@@ -123,7 +130,6 @@ bullet_speed = 10
 camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
 enemy_vel = 2
 enemy_gravity = 0.5
-
 running = True
 last_shot_player = 0
 knockback_strength = 17
@@ -149,11 +155,14 @@ while running:
 
     state["player_vel_y"] += gravity
     state["player_y"] += state["player_vel_y"]
-
     player_rect = pygame.Rect(state["player_x"], state["player_y"], player_w, player_h)
 
+    all_platforms = platforms + [long_platform]
+    if state["in_boss_arena"]:
+        all_platforms.append(boss_arena)
+
     on_ground = False
-    for p in platforms + [long_platform]:
+    for p in all_platforms:
         if player_rect.colliderect(p) and state["player_vel_y"] > 0:
             state["player_y"] = p.top - player_h
             state["player_vel_y"] = 0
@@ -167,7 +176,7 @@ while running:
     target_y = state["player_y"] + player_h // 2 - HEIGHT // 2
     camera.x += (target_x - camera.x) * camera_smoothness
     camera.y += (target_y - camera.y) * camera_smoothness
-    camera.x = max(0, min(camera.x, 5000 - WIDTH))
+    camera.x = max(0, min(camera.x, 7000 - WIDTH))
     camera.y = max(0, min(camera.y, HEIGHT - HEIGHT))
     cam_x, cam_y = int(camera.x), int(camera.y)
 
@@ -224,49 +233,54 @@ while running:
                 state["bullets"].append([ex, ey, vx, vy, "enemy"])
                 e["last_shot"] = current_time
 
-    # Updated Enemy Movement Logic
     for e in state["enemies"]:
-        e["rect"].y += enemy_gravity  # Apply gravity to the enemy
-        
-        # Check if the enemy is on any platform
+        e["rect"].y += enemy_gravity
         on_platform = False
-        for p in platforms + [long_platform]:
+        for p in all_platforms:
             if e["rect"].colliderect(p):
-                e["rect"].bottom = p.top  # Make sure enemy stays on top of the platform
+                e["rect"].bottom = p.top
                 on_platform = True
                 break
-
-        # If the enemy is not on a platform, check if it's about to fall off
         if on_platform:
             future_rect = e["rect"].copy()
             future_rect.x += enemy_vel
-            future_rect.y += 1  # Move down to check if it will fall
-
+            future_rect.y += 1
             supported = False
-            for p in platforms + [long_platform]:
+            for p in all_platforms:
                 if future_rect.colliderect(p):
                     supported = True
                     break
-
-            # Reverse direction if there's no platform to land on
             if not supported:
                 enemy_vel *= -1
-
-        # Move the enemy horizontally
         e["rect"].x += enemy_vel
-
-        # Prevent enemies from moving off the edges of the screen
         if e["rect"].left < 0 or e["rect"].right > long_platform.width:
             enemy_vel *= -1
 
-    screen.fill(DARK_BLUE)
-    for p in platforms + [long_platform]:
-        pygame.draw.rect(screen, BLUE, p.move(-cam_x, -cam_y))
-    pygame.draw.rect(screen, GREEN, player_rect.move(-cam_x, -cam_y))
+    for power in state["power_ups"]:
+        if player_rect.colliderect(power["rect"]):
+            if power["type"] == "health":
+                state["player_health"] = min(10, state["player_health"] + 2)
+            elif power["type"] == "speed":
+                state["player_shoot_speed"] = max(100, state["player_shoot_speed"] - 100)
+            state["power_ups"].remove(power)
+            state["power_ups"].append(spawn_power_up())
 
+    if not state["enemies"] and not state["boss_arena_entered"]:
+        state["player_x"] = boss_arena_x + 100
+        state["player_y"] = boss_arena_y
+        camera.x = boss_arena_x
+        state["in_boss_arena"] = True
+        state["boss_arena_entered"] = True
+
+    screen.fill(DARK_BLUE)
+    for p in all_platforms:
+        pygame.draw.rect(screen, BLUE, p.move(-cam_x, -cam_y))
+    if state["in_boss_arena"]:
+        pygame.draw.rect(screen, BLUE, boss_arena.move(-cam_x, -cam_y))
+
+    pygame.draw.rect(screen, GREEN, player_rect.move(-cam_x, -cam_y))
     for e in state["enemies"]:
         pygame.draw.rect(screen, RED, e["rect"].move(-cam_x, -cam_y))
-
     for b in state["bullets"]:
         pygame.draw.circle(screen, WHITE, (int(b[0] - cam_x), int(b[1] - cam_y)), 5)
 
@@ -281,6 +295,8 @@ while running:
         else:
             pygame.draw.circle(screen, (100, 0, 0), (heart_x, heart_y), 10, 2)
 
-    pygame.draw.rect(screen, (255, 215, 0), state["power_up"].move(-cam_x, -cam_y))
+    for power in state["power_ups"]:
+        color = (255, 215, 0) if power["type"] == "health" else (0, 255, 255)
+        pygame.draw.rect(screen, color, power["rect"].move(-cam_x, -cam_y))
 
     pygame.display.flip()
