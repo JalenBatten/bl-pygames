@@ -52,6 +52,9 @@ boss_arena_x = 6000
 boss_arena_y = HEIGHT - 150
 boss_arena = pygame.Rect(boss_arena_x, HEIGHT - 50, 1000, 10)
 
+# Load player sprite image
+player_sprite = pygame.image.load('player_sprite.png').convert_alpha()  # Replace with your sprite file
+player_sprite = pygame.transform.scale(player_sprite, (50, 50))  # Scale it to fit the player size
 
 def spawn_power_up():
     x = random.randint(long_platform.left + 10, long_platform.right - 30)
@@ -82,14 +85,12 @@ def reset_game():
         "boss_arena_entered": False
     }
 
-
 def draw_button(text, x, y, w, h, hover, screen):
     color = (200, 50, 50) if hover else (150, 0, 0)
     pygame.draw.rect(screen, color, (x, y, w, h))
     pygame.draw.rect(screen, WHITE, (x, y, w, h), 2)
     label = font.render(text, True, WHITE)
     screen.blit(label, (x + w//2 - label.get_width()//2, y + h//2 - label.get_height()//2))
-
 
 def game_over_screen():
     while True:
@@ -117,7 +118,6 @@ def game_over_screen():
 
         pygame.display.flip()
         clock.tick(60)
-
 
 state = reset_game()
 
@@ -278,7 +278,9 @@ while running:
     if state["in_boss_arena"]:
         pygame.draw.rect(screen, BLUE, boss_arena.move(-cam_x, -cam_y))
 
-    pygame.draw.rect(screen, GREEN, player_rect.move(-cam_x, -cam_y))
+    # Draw the player sprite
+    screen.blit(player_sprite, player_rect.move(-cam_x, -cam_y))  # Draw sprite instead of rectangle
+    
     for e in state["enemies"]:
         pygame.draw.rect(screen, RED, e["rect"].move(-cam_x, -cam_y))
     for b in state["bullets"]:
