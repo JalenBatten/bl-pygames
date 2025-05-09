@@ -53,8 +53,12 @@ boss_arena_y = HEIGHT - 150
 boss_arena = pygame.Rect(boss_arena_x, HEIGHT - 50, 1000, 10)
 
 # Load player sprite image
-player_sprite = pygame.image.load('player_sprite.png').convert_alpha()  # Replace with your sprite file
-player_sprite = pygame.transform.scale(player_sprite, (50, 50))  # Scale it to fit the player size
+player_sprite = pygame.image.load('player_sprite.png').convert_alpha()
+player_sprite = pygame.transform.scale(player_sprite, (80, 80))
+
+# Load enemy sprite image
+enemy_sprite = pygame.image.load('enemy_sprite.png').convert_alpha()
+enemy_sprite = pygame.transform.scale(enemy_sprite, (80, 80))
 
 def spawn_power_up():
     x = random.randint(long_platform.left + 10, long_platform.right - 30)
@@ -71,11 +75,11 @@ def reset_game():
         "bullets": [],
         "score": 0,
         "enemies": [
-            {"rect": pygame.Rect(100, 390, 40, 40), "health": 3, "shooting": False, "last_shot": 0},
-            {"rect": pygame.Rect(1500, 240, 40, 40), "health": 2, "shooting": True, "last_shot": 0},
-            {"rect": pygame.Rect(2500, 310, 40, 40), "health": 1, "shooting": False, "last_shot": 0},
-            {"rect": pygame.Rect(3500, 150, 40, 40), "health": 3, "shooting": True, "last_shot": 0},
-            {"rect": pygame.Rect(4500, HEIGHT - 100, 40, 40), "health": 2, "shooting": False, "last_shot": 0},
+            {"rect": pygame.Rect(100, 390, 60, 60), "health": 3, "shooting": False, "last_shot": 0},
+            {"rect": pygame.Rect(1500, 240, 60, 60), "health": 2, "shooting": True, "last_shot": 0},
+            {"rect": pygame.Rect(2500, 310, 60, 60), "health": 1, "shooting": False, "last_shot": 0},
+            {"rect": pygame.Rect(3500, 150, 60, 60), "health": 3, "shooting": True, "last_shot": 0},
+            {"rect": pygame.Rect(4500, HEIGHT - 100, 60, 60), "health": 2, "shooting": False, "last_shot": 0},
         ],
         "power_ups": [spawn_power_up(), spawn_power_up()],
         "game_over": False,
@@ -121,7 +125,7 @@ def game_over_screen():
 
 state = reset_game()
 
-player_w, player_h = 50, 50
+player_w, player_h = 80, 80
 player_vel = 5
 player_jump = -15
 gravity = 0.8
@@ -278,11 +282,11 @@ while running:
     if state["in_boss_arena"]:
         pygame.draw.rect(screen, BLUE, boss_arena.move(-cam_x, -cam_y))
 
-    # Draw the player sprite
-    screen.blit(player_sprite, player_rect.move(-cam_x, -cam_y))  # Draw sprite instead of rectangle
-    
+    screen.blit(player_sprite, player_rect.move(-cam_x, -cam_y))
+
     for e in state["enemies"]:
-        pygame.draw.rect(screen, RED, e["rect"].move(-cam_x, -cam_y))
+        screen.blit(enemy_sprite, e["rect"].move(-cam_x, -cam_y))
+
     for b in state["bullets"]:
         pygame.draw.circle(screen, WHITE, (int(b[0] - cam_x), int(b[1] - cam_y)), 5)
 
