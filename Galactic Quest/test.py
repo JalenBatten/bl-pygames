@@ -48,10 +48,6 @@ platforms = [
     pygame.Rect(4000, 200, platform_w, platform_h)
 ]
 
-boss_arena_x = 6000
-boss_arena_y = HEIGHT - 150
-boss_arena = pygame.Rect(boss_arena_x, HEIGHT - 50, 1000, 10)
-
 # Load player sprite image
 player_sprite = pygame.image.load('player_sprite.png').convert_alpha()
 player_sprite = pygame.transform.scale(player_sprite, (80, 80))
@@ -84,9 +80,7 @@ def reset_game():
         "power_ups": [spawn_power_up(), spawn_power_up()],
         "game_over": False,
         "player_shoot_speed": 500,
-        "player_last_damage_time": 0,
-        "in_boss_arena": False,
-        "boss_arena_entered": False
+        "player_last_damage_time": 0
     }
 
 def draw_button(text, x, y, w, h, hover, screen):
@@ -162,8 +156,6 @@ while running:
     player_rect = pygame.Rect(state["player_x"], state["player_y"], player_w, player_h)
 
     all_platforms = platforms + [long_platform]
-    if state["in_boss_arena"]:
-        all_platforms.append(boss_arena)
 
     on_ground = False
     for p in all_platforms:
@@ -269,18 +261,9 @@ while running:
             state["power_ups"].remove(power)
             state["power_ups"].append(spawn_power_up())
 
-    if not state["enemies"] and not state["boss_arena_entered"]:
-        state["player_x"] = boss_arena_x + 100
-        state["player_y"] = boss_arena_y
-        camera.x = boss_arena_x
-        state["in_boss_arena"] = True
-        state["boss_arena_entered"] = True
-
     screen.fill(DARK_BLUE)
     for p in all_platforms:
         pygame.draw.rect(screen, BLUE, p.move(-cam_x, -cam_y))
-    if state["in_boss_arena"]:
-        pygame.draw.rect(screen, BLUE, boss_arena.move(-cam_x, -cam_y))
 
     screen.blit(player_sprite, player_rect.move(-cam_x, -cam_y))
 
