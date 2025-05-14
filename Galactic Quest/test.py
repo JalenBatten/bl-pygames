@@ -6,9 +6,9 @@ import random
 pygame.init()
 
 pygame.mixer.init()
-pygame.mixer.music.load('background_music.mp3')  # Path to your music file
-pygame.mixer.music.set_volume(0.5)               # Volume from 0.0 to 1.0
-pygame.mixer.music.play(-1)                      # -1 means loop indefinitely
+pygame.mixer.music.load('background_music.mp3')
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)
 
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -53,11 +53,9 @@ platforms = [
     pygame.Rect(4000, 200, platform_w, platform_h)
 ]
 
-# Load player sprite image
 player_sprite = pygame.image.load('player_sprite.png').convert_alpha()
 player_sprite = pygame.transform.scale(player_sprite, (80, 80))
 
-# Load enemy sprite image
 enemy_sprite = pygame.image.load('enemy_sprite.png').convert_alpha()
 enemy_sprite = pygame.transform.scale(enemy_sprite, (80, 80))
 
@@ -122,6 +120,54 @@ def game_over_screen():
         pygame.display.flip()
         clock.tick(60)
 
+def credit_screen():
+    start_time = pygame.time.get_ticks()
+    duration = 5000  # milliseconds
+
+    credit_image = pygame.image.load('credit_screen.png').convert()  # Replace with your image
+    credit_image = pygame.transform.scale(credit_image, (WIDTH, HEIGHT))
+
+    while True:
+        current_time = pygame.time.get_ticks()
+        if current_time - start_time >= duration:
+            return
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        screen.blit(credit_image, (0, 0))
+        pygame.display.flip()
+        clock.tick(FPS)
+
+def win_screen():
+    while True:
+        screen.fill((10, 40, 10))
+        mx, my = pygame.mouse.get_pos()
+        play_again_rect = pygame.Rect(WIDTH//2 - 100, HEIGHT//2 - 30, 200, 50)
+        quit_rect = pygame.Rect(WIDTH//2 - 100, HEIGHT//2 + 40, 200, 50)
+
+        draw_button("Play Again", play_again_rect.x, play_again_rect.y, 200, 50, play_again_rect.collidepoint(mx, my), screen)
+        draw_button("Quit", quit_rect.x, quit_rect.y, 200, 50, quit_rect.collidepoint(mx, my), screen)
+
+        win_text = font.render("You Win!", True, GREEN)
+        screen.blit(win_text, (WIDTH//2 - win_text.get_width()//2, HEIGHT//2 - 100))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if play_again_rect.collidepoint(mx, my):
+                    return reset_game()
+                elif quit_rect.collidepoint(mx, my):
+                    pygame.quit()
+                    sys.exit()
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
 state = reset_game()
 
 player_w, player_h = 80, 80
@@ -143,6 +189,10 @@ while running:
     if state["game_over"]:
         state = game_over_screen()
 
+    if not state["game_over"] and len(state["enemies"]) == 0:
+        credit_screen()
+        state = win_screen()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -161,7 +211,6 @@ while running:
     player_rect = pygame.Rect(state["player_x"], state["player_y"], player_w, player_h)
 
     all_platforms = platforms + [long_platform]
-
     on_ground = False
     for p in all_platforms:
         if player_rect.colliderect(p) and state["player_vel_y"] > 0:
@@ -246,18 +295,14 @@ while running:
             future_rect = e["rect"].copy()
             future_rect.x += enemy_vel
             future_rect.y += 1
-            supported = False
-            for p in all_platforms:
-                if future_rect.colliderect(p):
-                    supported = True
-                    break
+            supported = any(future_rect.colliderect(p) for p in all_platforms)
             if not supported:
                 enemy_vel *= -1
         e["rect"].x += enemy_vel
         if e["rect"].left < 0 or e["rect"].right > long_platform.width:
             enemy_vel *= -1
 
-    for power in state["power_ups"]:
+    for power in state["power_ups"][:]:
         if player_rect.colliderect(power["rect"]):
             if power["type"] == "health":
                 state["player_health"] = min(10, state["player_health"] + 2)
