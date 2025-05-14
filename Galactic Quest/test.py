@@ -5,6 +5,11 @@ import random
 
 pygame.init()
 
+pygame.mixer.init()
+pygame.mixer.music.load('background_music.mp3')  # Path to your music file
+pygame.mixer.music.set_volume(0.5)               # Volume from 0.0 to 1.0
+pygame.mixer.music.play(-1)                      # -1 means loop indefinitely
+
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Platformer - Game Over Menu")
